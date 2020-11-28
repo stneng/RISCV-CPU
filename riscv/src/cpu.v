@@ -262,6 +262,7 @@ memctrl memctrl0(
     .clk_in(clk_in),
     .rst_in(rst_in),
     .rdy_in(rdy_in),
+    .io_buffer_full(io_buffer_full),
     .ram_din(mem_din),
     .ram_dout(mem_dout),
     .ram_a(mem_a),

@@ -3,6 +3,7 @@ module memctrl (
     input wire clk_in,
     input wire rst_in,
     input wire rdy_in,
+    input wire io_buffer_full,
     //ram
     input  wire[ 7:0]          ram_din,			// data input bus
     output reg [ 7:0]          ram_dout,		// data output bus
@@ -44,10 +45,14 @@ module memctrl (
                             status<=2'b10;
                             current_address<=mem_address;
                             ram_dout<=0;ram_a<=mem_address;ram_wr<=0;
-                        end else begin
+                        end else if (io_buffer_full==0)begin
                             status<=2'b11;
                             current_address<=mem_address;
                             ram_dout<=mem_data[7:0];ram_a<=mem_address;ram_wr<=1;
+                        end else begin
+                            status<=2'b00;
+                            current_address<=0;
+                            ram_dout<=0;ram_a<=0;ram_wr<=0;
                         end
                     end else if (if_pc_get==1) begin
                         status<=2'b01;
@@ -84,10 +89,14 @@ module memctrl (
                                     status<=2'b10;
                                     current_address<=mem_address;
                                     ram_dout<=0;ram_a<=mem_address;ram_wr<=0;
-                                end else begin
+                                end else if (io_buffer_full==0)begin
                                     status<=2'b11;
                                     current_address<=mem_address;
                                     ram_dout<=mem_data[7:0];ram_a<=mem_address;ram_wr<=1;
+                                end else begin
+                                    status<=2'b00;
+                                    current_address<=0;
+                                    ram_dout<=0;ram_a<=0;ram_wr<=0;
                                 end
                             end else begin
                                 status<=2'b00;
@@ -161,7 +170,12 @@ module memctrl (
                 end
                 2'b11: begin
                     if (current_address==mem_address) begin
-                        if (cnt==mem_len-1) begin
+                        if (io_buffer_full==1) begin
+                            status<=2'b11;cnt<=cnt;
+                            current_address<=mem_address;
+                            if_done<=0;if_out<=0;mem_done<=0;mem_out<=0;
+                            ram_dout<=0;ram_a<=0;ram_wr<=0;
+                        end else if (cnt==mem_len-1) begin
                             if_done<=0;if_out<=0;mem_done<=1;mem_out<=0;
                             // check if
                             cnt<=0;
