@@ -10,6 +10,8 @@ module ex (
     input wire[`RegAddressBus] rd_in,
     input wire[`RegBus] imm_in,
     input wire[`InstShort] inst_in, //inst short code
+    input wire[`CSRAddressBus] csr_in,
+    input wire[`RegBus] csr_data_in,
 
     //to ex_mem and id
     output reg[`RegAddressBus] rd_address,
@@ -18,6 +20,9 @@ module ex (
     output reg[`AddressBus] mem_address,
     output reg ex_ld, // to id
     output reg ex_rd_done, // to id
+    output reg[`CSRAddressBus] csr_out,
+    output reg csr_write_enable_out,
+    output reg[`RegBus] csr_write_data_out,
 
     //jump
     output reg jump_enable,
@@ -34,6 +39,9 @@ module ex (
             ex_rd_done=0;
             jump_enable=0;
             jump_target=0;
+            csr_out=0;
+            csr_write_data_out=0;
+            csr_write_enable_out=0;
         end else begin
             rd_address=rd_in;
             inst_out=inst_in;
@@ -43,6 +51,9 @@ module ex (
             ex_rd_done=0;
             jump_enable=0;
             jump_target=0;
+            csr_out=csr_in;
+            csr_write_data_out=0;
+            csr_write_enable_out=0;
             case (inst_in)
                 `instNOP: begin
                     rd_address=0;
@@ -187,10 +198,61 @@ module ex (
                     rd_data=rs1_in&rs2_in;
                     ex_rd_done=1;
                 end
+                `instCSRRW: begin
+                    csr_write_data_out=rs1_in;
+                    rd_data=csr_data_in;
+                    csr_write_enable_out=1;
+                end
+                `instCSRRS: begin
+                    csr_write_data_out=csr_data_in|rs1_in;
+                    rd_data=csr_data_in;
+                    csr_write_enable_out=1;
+                end
+                `instCSRRC: begin
+                    csr_write_data_out=csr_data_in&(~rs1_in);
+                    rd_data=csr_data_in;
+                    csr_write_enable_out=1;
+                end
+                `instCSRRWI: begin
+                    csr_write_data_out=imm_in;
+                    rd_data=csr_data_in;
+                    csr_write_enable_out=1;
+                end
+                `instCSRRSI: begin
+                    csr_write_data_out=csr_data_in|imm_in;
+                    rd_data=csr_data_in;
+                    csr_write_enable_out=1;
+                end
+                `instCSRRCI: begin
+                    csr_write_data_out=csr_data_in&(~imm_in);
+                    rd_data=csr_data_in;
+                    csr_write_enable_out=1;
+                end
                 default: begin
                     rd_address=0;
                 end
             endcase
         end
     end
+    // reg[`RegBus] rd_data2;
+    // always @(*) begin
+    //     if (rst_in==1 || rdy_in==0) begin
+    //         rd_data2=0;
+    //         csr_out=0;
+    //         csr_write_data_out=0;
+    //     end else begin
+    //         rd_data2=csr_data_in;
+    //         csr_out=csr_in;
+    //         case (inst_in)
+    //             `instCSRRW: csr_write_data_out=rs1_in;
+    //             `instCSRRS: csr_write_data_out=csr_data_in|rs1_in;
+    //             `instCSRRC: csr_write_data_out=csr_data_in&(~rs1_in);
+    //             `instCSRRWI: csr_write_data_out=imm_in;
+    //             `instCSRRSI: csr_write_data_out=csr_data_in|imm_in;
+    //             `instCSRRCI: csr_write_data_out=csr_data_in&(~imm_in);
+    //             default: csr_write_data_out=0;
+    //         endcase
+    //     end
+    // end
+    // assign rd_data=(inst_in>=`instCSRRW&&inst_in<=`instCSRRCI)?rd_data2:rd_data;
 endmodule

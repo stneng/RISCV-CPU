@@ -15,14 +15,23 @@ module id (
     input wire mem_rd_done,
     input wire[`RegAddressBus] mem_rd_address,
     input wire[`RegBus] mem_rd_data,
+    input wire ex_csr_done,
+    input wire[`CSRAddressBus] ex_csr_address,
+    input wire[`RegBus] ex_csr_data,
+    input wire mem_csr_done,
+    input wire[`CSRAddressBus] mem_csr_address,
+    input wire[`RegBus] mem_csr_data,
 
-    //register
+    //register and csr
     output reg read1_enable,
     output reg[`RegAddressBus] read1_address,
     input wire[`RegBus] read1_data,
     output reg read2_enable,
     output reg[`RegAddressBus] read2_address,
     input wire[`RegBus] read2_data,
+    output reg csr_read1_enable,
+    output reg[`CSRAddressBus] csr_read1_address,
+    input wire[`RegBus] csr_read1_data,
 
     //id_ex
     output reg[`AddressBus] pc_out,
@@ -31,6 +40,8 @@ module id (
     output reg[`RegAddressBus] rd_out,
     output reg[`RegBus] imm_out,
     output reg[`InstShort] inst_out, //inst short code
+    output reg[`CSRAddressBus] csr_out,
+    output reg[`RegBus] csr_data_out,
 
     output wire stall_out
 );
@@ -53,7 +64,13 @@ module id (
             read2_enable=0;
             read2_address=0;
             imm_out=0;
+            csr_read1_enable=0;
+            csr_read1_address=0;
+            csr_out=0;
         end else begin
+            csr_read1_enable=0;
+            csr_read1_address=0;
+            csr_out=0;
             case (opcode)
                 'h33: begin
                     case (inst_in[14:12])
@@ -197,6 +214,38 @@ module id (
                     read2_address=0;
                     imm_out={{12{inst_in[31]}},inst_in[19:12],inst_in[20],inst_in[30:25],inst_in[24:21],1'b0};
                 end
+                'h73: begin
+                    case (inst_in[14:12])
+                        'h1: inst_out=`instCSRRW;
+                        'h2: inst_out=`instCSRRS;
+                        'h3: inst_out=`instCSRRC;
+                        'h5: inst_out=`instCSRRWI;
+                        'h6: inst_out=`instCSRRSI;
+                        'h7: inst_out=`instCSRRCI;
+                        default: inst_out=`instNOP;
+                    endcase
+                    case (inst_in[14:12])
+                        'h1,'h2,'h3: begin
+                            read1_enable=1;
+                            imm_out=0;
+                        end
+                        'h5,'h6,'h7: begin
+                            read1_enable=0;
+                            imm_out=inst_in[19:15];
+                        end
+                        default: begin
+                            read1_enable=0;
+                            imm_out=0;
+                        end
+                    endcase
+                    rd_out=inst_in[11:7];
+                    read1_address=inst_in[19:15];
+                    read2_enable=0;
+                    read2_address=0;
+                    csr_out=inst_in[31:20];
+                    csr_read1_enable=1;
+                    csr_read1_address=inst_in[31:20];
+                end
                 default: begin
                     inst_out=`instNOP;
                     rd_out=0;
@@ -244,6 +293,19 @@ module id (
             rs2_out=read2_data;
         end else begin
             rs2_out=0;
+        end
+    end
+    always @(*) begin
+        if (rst_in==1 || rdy_in==0) begin
+            csr_data_out=0;
+        end else if (csr_read1_enable==1 && ex_csr_done==1 && ex_csr_address==csr_read1_address) begin
+            csr_data_out=ex_csr_data;
+        end else if (csr_read1_enable==1 && mem_csr_done==1 && mem_csr_address==csr_read1_address) begin
+            csr_data_out=mem_csr_data;
+        end else if (csr_read1_enable==1) begin
+            csr_data_out=csr_read1_data;
+        end else begin
+            csr_data_out=0;
         end
     end
     assign stall_out=reg1_stall|reg2_stall;

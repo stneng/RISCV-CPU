@@ -2,6 +2,7 @@
 `define InstBus     31:0
 `define RegAddressBus  4:0
 `define RegBus  31:0
+`define CSRAddressBus  12:0
 `define IcacheSize  256
 `define IcacheTagBus    7:0
 `define IcacheIndex 9:2
@@ -50,4 +51,10 @@
 `define instLUI 35
 `define instAUIPC 36
 `define instJAL 37
+`define instCSRRW 38
+`define instCSRRS 39
+`define instCSRRC 40
+`define instCSRRWI 41
+`define instCSRRSI 42
+`define instCSRRCI 43
 

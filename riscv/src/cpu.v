@@ -63,6 +63,23 @@ register register0(
     .read2_address(reg_read2_address),
     .read2_data(reg_read2_data)
 );
+wire csr_write1_enable;
+wire[`CSRAddressBus] csr_write1_address;
+wire[`RegBus] csr_write1_data;
+wire csr_read1_enable;
+wire[`CSRAddressBus] csr_read1_address;
+wire[`RegBus] csr_read1_data;
+csr csr0(
+    .clk_in(clk_in),
+    .rst_in(rst_in),
+    .rdy_in(rdy_in),
+    .write1_enable(csr_write1_enable),
+    .write1_address(csr_write1_address),
+    .write1_data(csr_write1_data),
+    .read1_enable(csr_read1_enable),
+    .read1_address(csr_read1_address),
+    .read1_data(csr_read1_data)
+);
 
 wire jump_enable;
 wire[`AddressBus] jump_target;
@@ -118,12 +135,20 @@ wire[`RegBus] ex_rd_data;
 wire mem_rd_done;
 wire[`RegAddressBus] mem_rd_address;
 wire[`RegBus] mem_rd_data;
+wire ex_csr_done;
+wire[`CSRAddressBus] ex_csr_address;
+wire[`RegBus] ex_csr_data;
+wire mem_csr_done;
+wire[`CSRAddressBus] mem_csr_address;
+wire[`RegBus] mem_csr_data;
 wire[`AddressBus] pc_out_to_idex;
 wire[`RegBus] rs1_out_to_idex;
 wire[`RegBus] rs2_out_to_idex;
 wire[`RegAddressBus] rd_out_to_idex;
 wire[`RegBus] imm_out_to_idex;
 wire[`InstShort] inst_out_to_idex;
+wire[`CSRAddressBus] csr_out_to_idex;
+wire[`RegBus] csr_data_out_to_idex;
 id id0(
     .clk_in(clk_in),
     .rst_in(rst_in),
@@ -137,18 +162,29 @@ id id0(
     .mem_rd_done(mem_rd_done),
     .mem_rd_address(mem_rd_address),
     .mem_rd_data(mem_rd_data),
+    .ex_csr_done(ex_csr_done),
+    .ex_csr_address(ex_csr_address),
+    .ex_csr_data(ex_csr_data),
+    .mem_csr_done(mem_csr_done),
+    .mem_csr_address(mem_csr_address),
+    .mem_csr_data(mem_csr_data),
     .read1_enable(reg_read1_enable),
     .read1_address(reg_read1_address),
     .read1_data(reg_read1_data),
     .read2_enable(reg_read2_enable),
     .read2_address(reg_read2_address),
     .read2_data(reg_read2_data),
+    .csr_read1_enable(csr_read1_enable),
+    .csr_read1_address(csr_read1_address),
+    .csr_read1_data(csr_read1_data),
     .pc_out(pc_out_to_idex),
     .rs1_out(rs1_out_to_idex),
     .rs2_out(rs2_out_to_idex),
     .rd_out(rd_out_to_idex),
     .imm_out(imm_out_to_idex),
     .inst_out(inst_out_to_idex),
+    .csr_out(csr_out_to_idex),
+    .csr_data_out(csr_data_out_to_idex),
     .stall_out(id_stall_in)
 );
 
@@ -158,6 +194,8 @@ wire[`RegBus] rs2_out_to_ex;
 wire[`RegAddressBus] rd_out_to_ex;
 wire[`RegBus] imm_out_to_ex;
 wire[`InstShort] inst_out_to_ex;
+wire[`CSRAddressBus] csr_out_to_ex;
+wire[`RegBus] csr_data_out_to_ex;
 id_ex id_ex0(
     .clk_in(clk_in),
     .rst_in(rst_in),
@@ -170,12 +208,16 @@ id_ex id_ex0(
     .rd_in(rd_out_to_idex),
     .imm_in(imm_out_to_idex),
     .inst_in(inst_out_to_idex),
+    .csr_in(csr_out_to_idex),
+    .csr_data_in(csr_data_out_to_idex),
     .pc_out(pc_out_to_ex),
     .rs1_out(rs1_out_to_ex),
     .rs2_out(rs2_out_to_ex),
     .rd_out(rd_out_to_ex),
     .imm_out(imm_out_to_ex),
-    .inst_out(inst_out_to_ex)
+    .inst_out(inst_out_to_ex),
+    .csr_out(csr_out_to_ex),
+    .csr_data_out(csr_data_out_to_ex)
 );
 
 wire[`InstShort] ex_inst_out;
@@ -190,12 +232,17 @@ ex ex0(
     .rd_in(rd_out_to_ex),
     .imm_in(imm_out_to_ex),
     .inst_in(inst_out_to_ex),
+    .csr_in(csr_out_to_ex),
+    .csr_data_in(csr_data_out_to_ex),
     .rd_address(ex_rd_address),
     .rd_data(ex_rd_data),
     .inst_out(ex_inst_out),
     .mem_address(ex_mem_address),
     .ex_ld(ex_ld),
     .ex_rd_done(ex_rd_done),
+    .csr_out(ex_csr_address),
+    .csr_write_enable_out(ex_csr_done),
+    .csr_write_data_out(ex_csr_data),
     .jump_enable(jump_enable),
     .jump_target(jump_target)
 );
@@ -204,6 +251,9 @@ wire[`RegAddressBus] rd_address_to_mem;
 wire[`RegBus] rd_data_to_mem;
 wire[`InstShort] inst_out_to_mem;
 wire[`AddressBus] mem_address_to_mem;
+wire[`CSRAddressBus] csr_address_to_mem;
+wire csr_write_enable_to_mem;
+wire[`RegBus] csr_data_to_mem;
 ex_mem ex_mem0(
     .clk_in(clk_in),
     .rst_in(rst_in),
@@ -213,10 +263,16 @@ ex_mem ex_mem0(
     .rd_data_in(ex_rd_data),
     .inst_in(ex_inst_out),
     .mem_address_in(ex_mem_address),
+    .csr_in(ex_csr_address),
+    .csr_write_enable_in(ex_csr_done),
+    .csr_write_data_in(ex_csr_data),
     .rd_address(rd_address_to_mem),
     .rd_data(rd_data_to_mem),
     .inst_out(inst_out_to_mem),
-    .mem_address(mem_address_to_mem)
+    .mem_address(mem_address_to_mem),
+    .csr_out(csr_address_to_mem),
+    .csr_write_enable_out(csr_write_enable_to_mem),
+    .csr_write_data_out(csr_data_to_mem)
 );
 
 wire mem_mem_done;
@@ -234,6 +290,9 @@ mem mem0(
     .rd_data_in(rd_data_to_mem),
     .inst_in(inst_out_to_mem),
     .mem_address_in(mem_address_to_mem),
+    .csr_in(csr_address_to_mem),
+    .csr_write_enable_in(csr_write_enable_to_mem),
+    .csr_write_data_in(csr_data_to_mem),
     .mem_done(mem_mem_done),
     .mem_out(mem_mem_out),
     .mem_get(mem_mem_get),
@@ -244,6 +303,9 @@ mem mem0(
     .rd_address(mem_rd_address),
     .rd_data(mem_rd_data),
     .mem_rd_done(mem_rd_done),
+    .csr_out(mem_csr_address),
+    .csr_write_enable_out(mem_csr_done),
+    .csr_write_data_out(mem_csr_data),
     .stall_out(mem_stall_in)
 );
 
@@ -254,8 +316,14 @@ mem_wb mem_wb0(
     .stall_in(stall_in),
     .rd_address_in(mem_rd_address),
     .rd_data_in(mem_rd_data),
+    .csr_in(mem_csr_address),
+    .csr_write_enable_in(mem_csr_done),
+    .csr_write_data_in(mem_csr_data),
     .rd_address(reg_write_address),
-    .rd_data(reg_write_data)
+    .rd_data(reg_write_data),
+    .csr_out(csr_write1_address),
+    .csr_write_enable_out(csr_write1_enable),
+    .csr_write_data_out(csr_write1_data)
 );
 
 memctrl memctrl0(
