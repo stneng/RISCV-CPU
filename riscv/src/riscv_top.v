@@ -116,6 +116,9 @@ cpu cpu0(
 	
 	.io_buffer_full(hci_io_full),
 
+	.interrupt_enable(0),
+    .interrupt_cause(0),
+
 	.dbgreg_dout(cpu_dbgreg_dout)
 );
 

@@ -228,31 +228,14 @@ module ex (
                     rd_data=csr_data_in;
                     csr_write_enable_out=1;
                 end
+                `instMRET: begin
+                    jump_enable=1;
+                    jump_target=csr_data_in;
+                end
                 default: begin
                     rd_address=0;
                 end
             endcase
         end
     end
-    // reg[`RegBus] rd_data2;
-    // always @(*) begin
-    //     if (rst_in==1 || rdy_in==0) begin
-    //         rd_data2=0;
-    //         csr_out=0;
-    //         csr_write_data_out=0;
-    //     end else begin
-    //         rd_data2=csr_data_in;
-    //         csr_out=csr_in;
-    //         case (inst_in)
-    //             `instCSRRW: csr_write_data_out=rs1_in;
-    //             `instCSRRS: csr_write_data_out=csr_data_in|rs1_in;
-    //             `instCSRRC: csr_write_data_out=csr_data_in&(~rs1_in);
-    //             `instCSRRWI: csr_write_data_out=imm_in;
-    //             `instCSRRSI: csr_write_data_out=csr_data_in|imm_in;
-    //             `instCSRRCI: csr_write_data_out=csr_data_in&(~imm_in);
-    //             default: csr_write_data_out=0;
-    //         endcase
-    //     end
-    // end
-    // assign rd_data=(inst_in>=`instCSRRW&&inst_in<=`instCSRRCI)?rd_data2:rd_data;
 endmodule

@@ -215,36 +215,48 @@ module id (
                     imm_out={{12{inst_in[31]}},inst_in[19:12],inst_in[20],inst_in[30:25],inst_in[24:21],1'b0};
                 end
                 'h73: begin
-                    case (inst_in[14:12])
-                        'h1: inst_out=`instCSRRW;
-                        'h2: inst_out=`instCSRRS;
-                        'h3: inst_out=`instCSRRC;
-                        'h5: inst_out=`instCSRRWI;
-                        'h6: inst_out=`instCSRRSI;
-                        'h7: inst_out=`instCSRRCI;
-                        default: inst_out=`instNOP;
-                    endcase
-                    case (inst_in[14:12])
-                        'h1,'h2,'h3: begin
-                            read1_enable=1;
-                            imm_out=0;
-                        end
-                        'h5,'h6,'h7: begin
-                            read1_enable=0;
-                            imm_out=inst_in[19:15];
-                        end
-                        default: begin
-                            read1_enable=0;
-                            imm_out=0;
-                        end
-                    endcase
-                    rd_out=inst_in[11:7];
-                    read1_address=inst_in[19:15];
-                    read2_enable=0;
-                    read2_address=0;
-                    csr_out=inst_in[31:20];
-                    csr_read1_enable=1;
-                    csr_read1_address=inst_in[31:20];
+                    if (inst_in[14:12]==0 && inst_in[31:20]=='h302) begin
+                        inst_out=`instMRET;
+                        rd_out=0;
+                        read1_enable=0;
+                        read1_address=0;
+                        read2_enable=0;
+                        read2_address=0;
+                        imm_out=0;
+                        csr_read1_enable=1;
+                        csr_read1_address=`csrmepc;
+                    end else begin
+                        case (inst_in[14:12])
+                            'h1: inst_out=`instCSRRW;
+                            'h2: inst_out=`instCSRRS;
+                            'h3: inst_out=`instCSRRC;
+                            'h5: inst_out=`instCSRRWI;
+                            'h6: inst_out=`instCSRRSI;
+                            'h7: inst_out=`instCSRRCI;
+                            default: inst_out=`instNOP;
+                        endcase
+                        case (inst_in[14:12])
+                            'h1,'h2,'h3: begin
+                                read1_enable=1;
+                                imm_out=0;
+                            end
+                            'h5,'h6,'h7: begin
+                                read1_enable=0;
+                                imm_out=inst_in[19:15];
+                            end
+                            default: begin
+                                read1_enable=0;
+                                imm_out=0;
+                            end
+                        endcase
+                        rd_out=inst_in[11:7];
+                        read1_address=inst_in[19:15];
+                        read2_enable=0;
+                        read2_address=0;
+                        csr_out=inst_in[31:20];
+                        csr_read1_enable=1;
+                        csr_read1_address=inst_in[31:20];
+                    end
                 end
                 default: begin
                     inst_out=`instNOP;

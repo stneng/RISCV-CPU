@@ -57,4 +57,9 @@
 `define instCSRRWI 41
 `define instCSRRSI 42
 `define instCSRRCI 43
+`define instMRET 44
+
+//CSR
+`define csrmtvec 'h305
+`define csrmepc 'h341
 

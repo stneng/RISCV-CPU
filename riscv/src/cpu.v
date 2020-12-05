@@ -13,6 +13,9 @@ module cpu(
 
     input  wire                 io_buffer_full, // 1 if uart buffer is full
 
+    input  wire                 interrupt_enable,
+    input  wire[2:0]            interrupt_cause,
+
     output wire [31:0]          dbgreg_dout		// cpu register output (debugging demo)
 );
 
@@ -32,11 +35,13 @@ module cpu(
 wire if_stall_in;
 wire id_stall_in;
 wire mem_stall_in;
+wire interrupt_stall_in;
 wire[`StallBus] stall_in;
 stallctrl stallctrl0(
     .if_stall_in(if_stall_in),
     .id_stall_in(id_stall_in),
     .mem_stall_in(mem_stall_in),
+    .interrupt_stall_in(interrupt_stall_in),
     .stall_out(stall_in)
 );
 wire reg_write_enable;
@@ -66,9 +71,15 @@ register register0(
 wire csr_write1_enable;
 wire[`CSRAddressBus] csr_write1_address;
 wire[`RegBus] csr_write1_data;
+wire csr_write2_enable;
+wire[`CSRAddressBus] csr_write2_address;
+wire[`RegBus] csr_write2_data;
 wire csr_read1_enable;
 wire[`CSRAddressBus] csr_read1_address;
 wire[`RegBus] csr_read1_data;
+wire csr_read2_enable;
+wire[`CSRAddressBus] csr_read2_address;
+wire[`RegBus] csr_read2_data;
 csr csr0(
     .clk_in(clk_in),
     .rst_in(rst_in),
@@ -76,13 +87,25 @@ csr csr0(
     .write1_enable(csr_write1_enable),
     .write1_address(csr_write1_address),
     .write1_data(csr_write1_data),
+    .write2_enable(csr_write2_enable),
+    .write2_address(csr_write2_address),
+    .write2_data(csr_write2_data),
     .read1_enable(csr_read1_enable),
     .read1_address(csr_read1_address),
-    .read1_data(csr_read1_data)
+    .read1_data(csr_read1_data),
+    .read2_enable(csr_read2_enable),
+    .read2_address(csr_read2_address),
+    .read2_data(csr_read2_data)
 );
 
+wire jump_enable_from_ex;
+wire[`AddressBus] jump_target_from_ex;
+wire jump_enable_from_interruptctrl;
+wire[`AddressBus] jump_target_from_interruptctrl;
 wire jump_enable;
 wire[`AddressBus] jump_target;
+assign jump_enable=jump_enable_from_ex|jump_enable_from_interruptctrl;
+assign jump_target=(jump_enable_from_ex==1)?jump_target_from_ex:jump_target_from_interruptctrl;
 
 wire[`AddressBus] pc_to_if;
 pc_reg pc_reg0(
@@ -243,8 +266,8 @@ ex ex0(
     .csr_out(ex_csr_address),
     .csr_write_enable_out(ex_csr_done),
     .csr_write_data_out(ex_csr_data),
-    .jump_enable(jump_enable),
-    .jump_target(jump_target)
+    .jump_enable(jump_enable_from_ex),
+    .jump_target(jump_target_from_ex)
 );
 
 wire[`RegAddressBus] rd_address_to_mem;
@@ -346,6 +369,24 @@ memctrl memctrl0(
     .mem_len(mem_mem_len),
     .mem_done(mem_mem_done),
     .mem_out(mem_mem_out)
+);
+
+interruptctrl interruptctrl0(
+    .clk_in(clk_in),
+    .rst_in(rst_in),
+    .rdy_in(rdy_in),
+    .interrupt_enable(interrupt_enable),
+    .interrupt_cause(interrupt_cause),
+    .pc_in(pc_to_if),
+    .csr_read2_enable(csr_read2_enable),
+    .csr_read2_address(csr_read2_address),
+    .csr_read2_data(csr_read2_data),
+    .csr_write2_enable(csr_write2_enable),
+    .csr_write2_address(csr_write2_address),
+    .csr_write2_data(csr_write2_data),
+    .jump_enable(jump_enable_from_interruptctrl),
+    .jump_target(jump_target_from_interruptctrl),
+    .stall_out(interrupt_stall_in)
 );
 
 endmodule
