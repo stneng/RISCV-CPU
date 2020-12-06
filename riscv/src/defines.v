@@ -7,6 +7,11 @@
 `define IcacheTagBus    7:0
 `define IcacheIndex 9:2
 `define IcacheTag   17:10
+`define DcacheSize  32
+`define DcacheTagBus    12:0
+`define DcacheIndex 4:0
+`define DcacheIndexLen 5
+`define DcacheTag   17:5
 
 // Stall
 `define StallBus    5:0
