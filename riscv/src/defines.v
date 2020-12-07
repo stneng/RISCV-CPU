@@ -3,15 +3,19 @@
 `define RegAddressBus  4:0
 `define RegBus  31:0
 `define CSRAddressBus  12:0
-`define IcacheSize  256
+`define IcacheSize      256
 `define IcacheTagBus    7:0
-`define IcacheIndex 9:2
-`define IcacheTag   17:10
-`define DcacheSize  32
+`define IcacheIndex     9:2
+`define IcacheTag       17:10
+`define DcacheSize      32
 `define DcacheTagBus    12:0
-`define DcacheIndex 4:0
-`define DcacheIndexLen 5
-`define DcacheTag   17:5
+`define DcacheIndex     4:0
+`define DcacheIndexLen  5
+`define DcacheTag       17:5
+`define predictorSize   128
+`define predictorTagBus 8:0
+`define predictorIndex  8:2
+`define predictorTag    17:9
 
 // Stall
 `define StallBus    5:0

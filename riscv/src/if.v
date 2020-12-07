@@ -5,6 +5,8 @@ module If (
     input wire rdy_in,
     //pc_reg
     input wire[`AddressBus] pc_in,
+    input wire[`AddressBus] next_pc_in,
+    input wire branch_taken_in,
     //memctrl
     input wire inst_done,
     input wire[`InstBus] inst_in,
@@ -13,6 +15,7 @@ module If (
     //if_id
     output reg[`AddressBus] pc_out,
     output reg[`InstBus] inst_out,
+    output reg branch_taken_out,
 
     output reg stall_out
 );
@@ -33,7 +36,7 @@ module If (
                 icache[pc_in[`IcacheIndex]]<=inst_in;
                 icache_tag[pc_in[`IcacheIndex]]<=pc_in[`IcacheTag];
                 icache_valid[pc_in[`IcacheIndex]]<=1;
-                mem_pc_out<=pc_in+4;
+                mem_pc_out<=next_pc_in;
             end else begin
                 mem_pc_out<=pc_in;
             end
@@ -43,28 +46,33 @@ module If (
         if (rst_in==1) begin
             pc_out=0;
             inst_out=0;
+            branch_taken_out=0;
             stall_out=0;
             mem_pc_get=0;
         end else if (rdy_in==1) begin
             if (inst_done==1) begin
                 pc_out=pc_in;
                 inst_out=inst_in;
+                branch_taken_out=branch_taken_in;
                 stall_out=0;
                 mem_pc_get=0;
             end else if (icache_valid[pc_in[`IcacheIndex]]==1 && icache_tag[pc_in[`IcacheIndex]]==pc_in[`IcacheTag]) begin
                 pc_out=pc_in;
                 inst_out=icache[pc_in[`IcacheIndex]];
+                branch_taken_out=branch_taken_in;
                 stall_out=0;
                 mem_pc_get=0;
             end else begin
                 pc_out=0;
                 inst_out=0;
+                branch_taken_out=0;
                 stall_out=1;
                 mem_pc_get=1;
             end
         end else begin
             pc_out=0;
             inst_out=0;
+            branch_taken_out=0;
             stall_out=0;
             mem_pc_get=0;
         end

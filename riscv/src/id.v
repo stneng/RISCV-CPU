@@ -6,6 +6,7 @@ module id (
     //if_id
     input wire[`AddressBus] pc_in,
     input wire[`InstBus] inst_in,
+    input wire branch_taken_in,
 
     //data from ex and mem
     input wire ex_ld,
@@ -42,6 +43,7 @@ module id (
     output reg[`InstShort] inst_out, //inst short code
     output reg[`CSRAddressBus] csr_out,
     output reg[`RegBus] csr_data_out,
+    output reg branch_taken_out,
 
     output wire stall_out
 );
@@ -67,10 +69,12 @@ module id (
             csr_read1_enable=0;
             csr_read1_address=0;
             csr_out=0;
+            branch_taken_out=0;
         end else begin
             csr_read1_enable=0;
             csr_read1_address=0;
             csr_out=0;
+            branch_taken_out=branch_taken_in;
             case (opcode)
                 'h33: begin
                     case (inst_in[14:12])

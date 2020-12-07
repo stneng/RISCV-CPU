@@ -97,6 +97,25 @@ csr csr0(
     .read2_address(csr_read2_address),
     .read2_data(csr_read2_data)
 );
+wire[`AddressBus] pc;
+wire[`AddressBus] next_pc_to_pc_reg;
+wire branch_taken_to_pc_reg;
+wire predictor_write_enable;
+wire[`AddressBus] predictor_write_pc;
+wire[`AddressBus] predictor_write_target;
+wire predictor_write_taken;
+predictor predictor0(
+    .clk_in(clk_in),
+    .rst_in(rst_in),
+    .rdy_in(rdy_in),
+    .pc_in(pc),
+    .next_pc_out(next_pc_to_pc_reg),
+    .branch_taken_out(branch_taken_to_pc_reg),
+    .write_enable(predictor_write_enable),
+    .write_pc(predictor_write_pc),
+    .write_target(predictor_write_target),
+    .write_taken(predictor_write_taken)
+);
 
 wire jump_enable_from_ex;
 wire[`AddressBus] jump_target_from_ex;
@@ -107,7 +126,8 @@ wire[`AddressBus] jump_target;
 assign jump_enable=jump_enable_from_ex|jump_enable_from_interruptctrl;
 assign jump_target=(jump_enable_from_ex==1)?jump_target_from_ex:jump_target_from_interruptctrl;
 
-wire[`AddressBus] pc_to_if;
+wire[`AddressBus] next_pc_to_if;
+wire branch_taken_to_if;
 pc_reg pc_reg0(
     .clk_in(clk_in),
     .rst_in(rst_in),
@@ -115,7 +135,11 @@ pc_reg pc_reg0(
     .stall_in(stall_in),
     .jump_enable(jump_enable),
     .jump_target(jump_target),
-    .pc(pc_to_if)
+    .pc(pc),
+    .next_pc_out(next_pc_to_if),
+    .branch_taken_out(branch_taken_to_if),
+    .next_pc_in(next_pc_to_pc_reg),
+    .branch_taken_in(branch_taken_to_pc_reg)
 );
 
 wire if_mem_inst_done;
@@ -124,22 +148,27 @@ wire if_mem_pc_get;
 wire[`AddressBus] if_mem_pc_out;
 wire[`AddressBus] pc_out_to_ifid;
 wire[`InstBus] inst_out_to_ifid;
+wire branch_taken_to_ifid;
 If if0(
     .clk_in(clk_in),
     .rst_in(rst_in),
     .rdy_in(rdy_in),
-    .pc_in(pc_to_if),
+    .pc_in(pc),
+    .next_pc_in(next_pc_to_if),
+    .branch_taken_in(branch_taken_to_if),
     .inst_done(if_mem_inst_done),
     .inst_in(if_mem_inst_in),
     .mem_pc_get(if_mem_pc_get),
     .mem_pc_out(if_mem_pc_out),
     .pc_out(pc_out_to_ifid),
     .inst_out(inst_out_to_ifid),
+    .branch_taken_out(branch_taken_to_ifid),
     .stall_out(if_stall_in)
 );
 
 wire[`AddressBus] pc_out_to_id;
 wire[`InstBus] inst_out_to_id;
+wire branch_taken_to_id;
 if_id if_id0(
     .clk_in(clk_in),
     .rst_in(rst_in),
@@ -148,8 +177,10 @@ if_id if_id0(
     .jump_enable(jump_enable),
     .pc_in(pc_out_to_ifid),
     .inst_in(inst_out_to_ifid),
+    .branch_taken_in(branch_taken_to_ifid),
     .pc_out(pc_out_to_id),
-    .inst_out(inst_out_to_id)
+    .inst_out(inst_out_to_id),
+    .branch_taken_out(branch_taken_to_id)
 );
 
 wire ex_ld,ex_rd_done;
@@ -170,6 +201,7 @@ wire[`RegBus] rs2_out_to_idex;
 wire[`RegAddressBus] rd_out_to_idex;
 wire[`RegBus] imm_out_to_idex;
 wire[`InstShort] inst_out_to_idex;
+wire branch_taken_to_idex;
 wire[`CSRAddressBus] csr_out_to_idex;
 wire[`RegBus] csr_data_out_to_idex;
 id id0(
@@ -178,6 +210,7 @@ id id0(
     .rdy_in(rdy_in),
     .pc_in(pc_out_to_id),
     .inst_in(inst_out_to_id),
+    .branch_taken_in(branch_taken_to_id),
     .ex_ld(ex_ld),
     .ex_rd_done(ex_rd_done),
     .ex_rd_address(ex_rd_address),
@@ -206,6 +239,7 @@ id id0(
     .rd_out(rd_out_to_idex),
     .imm_out(imm_out_to_idex),
     .inst_out(inst_out_to_idex),
+    .branch_taken_out(branch_taken_to_idex),
     .csr_out(csr_out_to_idex),
     .csr_data_out(csr_data_out_to_idex),
     .stall_out(id_stall_in)
@@ -217,6 +251,7 @@ wire[`RegBus] rs2_out_to_ex;
 wire[`RegAddressBus] rd_out_to_ex;
 wire[`RegBus] imm_out_to_ex;
 wire[`InstShort] inst_out_to_ex;
+wire branch_taken_to_ex;
 wire[`CSRAddressBus] csr_out_to_ex;
 wire[`RegBus] csr_data_out_to_ex;
 id_ex id_ex0(
@@ -231,6 +266,7 @@ id_ex id_ex0(
     .rd_in(rd_out_to_idex),
     .imm_in(imm_out_to_idex),
     .inst_in(inst_out_to_idex),
+    .branch_taken_in(branch_taken_to_idex),
     .csr_in(csr_out_to_idex),
     .csr_data_in(csr_data_out_to_idex),
     .pc_out(pc_out_to_ex),
@@ -239,6 +275,7 @@ id_ex id_ex0(
     .rd_out(rd_out_to_ex),
     .imm_out(imm_out_to_ex),
     .inst_out(inst_out_to_ex),
+    .branch_taken_out(branch_taken_to_ex),
     .csr_out(csr_out_to_ex),
     .csr_data_out(csr_data_out_to_ex)
 );
@@ -255,6 +292,7 @@ ex ex0(
     .rd_in(rd_out_to_ex),
     .imm_in(imm_out_to_ex),
     .inst_in(inst_out_to_ex),
+    .branch_taken_in(branch_taken_to_ex),
     .csr_in(csr_out_to_ex),
     .csr_data_in(csr_data_out_to_ex),
     .rd_address(ex_rd_address),
@@ -266,6 +304,10 @@ ex ex0(
     .csr_out(ex_csr_address),
     .csr_write_enable_out(ex_csr_done),
     .csr_write_data_out(ex_csr_data),
+    .predictor_write_enable(predictor_write_enable),
+    .predictor_write_pc(predictor_write_pc),
+    .predictor_write_target(predictor_write_target),
+    .predictor_write_taken(predictor_write_taken),
     .jump_enable(jump_enable_from_ex),
     .jump_target(jump_target_from_ex)
 );
@@ -377,7 +419,7 @@ interruptctrl interruptctrl0(
     .rdy_in(rdy_in),
     .interrupt_enable(interrupt_enable),
     .interrupt_cause(interrupt_cause),
-    .pc_in(pc_to_if),
+    .pc_in(pc),
     .csr_read2_enable(csr_read2_enable),
     .csr_read2_address(csr_read2_address),
     .csr_read2_data(csr_read2_data),

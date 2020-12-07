@@ -8,7 +8,12 @@ module pc_reg (
     input wire jump_enable,
     input wire[`AddressBus] jump_target,
     //if
-    output reg[`AddressBus] pc
+    output reg[`AddressBus] pc,
+    output reg[`AddressBus] next_pc_out,
+    output reg branch_taken_out,
+    //predictor
+    input wire[`AddressBus] next_pc_in,
+    input wire branch_taken_in
 );
     always @(posedge clk_in) begin
         if (rst_in==1) begin
@@ -17,8 +22,12 @@ module pc_reg (
             if (jump_enable==1) begin
                 pc<=jump_target;
             end else if (stall_in[0]==0) begin
-                pc<=pc+4;
+                pc<=next_pc_in;
             end
         end
+    end
+    always @(*) begin
+        next_pc_out=next_pc_in;
+        branch_taken_out=branch_taken_in;
     end
 endmodule

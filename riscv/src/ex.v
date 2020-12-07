@@ -12,6 +12,7 @@ module ex (
     input wire[`InstShort] inst_in, //inst short code
     input wire[`CSRAddressBus] csr_in,
     input wire[`RegBus] csr_data_in,
+    input wire branch_taken_in,
 
     //to ex_mem and id
     output reg[`RegAddressBus] rd_address,
@@ -23,6 +24,12 @@ module ex (
     output reg[`CSRAddressBus] csr_out,
     output reg csr_write_enable_out,
     output reg[`RegBus] csr_write_data_out,
+
+    //predictor
+    output reg predictor_write_enable,
+    output reg[`AddressBus] predictor_write_pc,
+    output reg[`AddressBus] predictor_write_target,
+    output reg predictor_write_taken,
 
     //jump
     output reg jump_enable,
@@ -42,6 +49,10 @@ module ex (
             csr_out=0;
             csr_write_data_out=0;
             csr_write_enable_out=0;
+            predictor_write_enable=0;
+            predictor_write_pc=0;
+            predictor_write_target=0;
+            predictor_write_taken=0;
         end else begin
             rd_address=rd_in;
             inst_out=inst_in;
@@ -54,6 +65,10 @@ module ex (
             csr_out=csr_in;
             csr_write_data_out=0;
             csr_write_enable_out=0;
+            predictor_write_enable=0;
+            predictor_write_pc=0;
+            predictor_write_target=0;
+            predictor_write_taken=0;
             case (inst_in)
                 `instNOP: begin
                     rd_address=0;
@@ -69,8 +84,14 @@ module ex (
                 `instJAL: begin
                     rd_data=pc_in+4;
                     ex_rd_done=1;
-                    jump_enable=1;
-                    jump_target=pc_in+imm_in;
+                    if (branch_taken_in==0) begin
+                        jump_enable=1;
+                        jump_target=pc_in+imm_in;
+                    end
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
+                    predictor_write_taken=1;
                 end
                 `instJALR: begin
                     rd_data=pc_in+4;
@@ -79,39 +100,111 @@ module ex (
                     jump_target=(rs1_in+imm_in)&32'hFFFFFFFE;
                 end
                 `instBEQ: begin
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
                     if (rs1_in==rs2_in) begin
-                        jump_enable=1;
-                        jump_target=pc_in+imm_in;
+                        predictor_write_taken=1;
+                        if (branch_taken_in==0) begin
+                            jump_enable=1;
+                            jump_target=pc_in+imm_in;
+                        end
+                    end else begin
+                        predictor_write_taken=0;
+                        if (branch_taken_in==1) begin
+                            jump_enable=1;
+                            jump_target=pc_in+4;
+                        end
                     end
                 end
                 `instBNE: begin
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
                     if (rs1_in!=rs2_in) begin
-                        jump_enable=1;
-                        jump_target=pc_in+imm_in;
+                        predictor_write_taken=1;
+                        if (branch_taken_in==0) begin
+                            jump_enable=1;
+                            jump_target=pc_in+imm_in;
+                        end
+                    end else begin
+                        predictor_write_taken=0;
+                        if (branch_taken_in==1) begin
+                            jump_enable=1;
+                            jump_target=pc_in+4;
+                        end
                     end
                 end
                 `instBLT: begin
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
                     if ($signed(rs1_in)<$signed(rs2_in)) begin
-                        jump_enable=1;
-                        jump_target=pc_in+imm_in;
+                        predictor_write_taken=1;
+                        if (branch_taken_in==0) begin
+                            jump_enable=1;
+                            jump_target=pc_in+imm_in;
+                        end
+                    end else begin
+                        predictor_write_taken=0;
+                        if (branch_taken_in==1) begin
+                            jump_enable=1;
+                            jump_target=pc_in+4;
+                        end
                     end
                 end
                 `instBGE: begin
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
                     if ($signed(rs1_in)>=$signed(rs2_in)) begin
-                        jump_enable=1;
-                        jump_target=pc_in+imm_in;
+                        predictor_write_taken=1;
+                        if (branch_taken_in==0) begin
+                            jump_enable=1;
+                            jump_target=pc_in+imm_in;
+                        end
+                    end else begin
+                        predictor_write_taken=0;
+                        if (branch_taken_in==1) begin
+                            jump_enable=1;
+                            jump_target=pc_in+4;
+                        end
                     end
                 end
                 `instBLTU: begin
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
                     if (rs1_in<rs2_in) begin
-                        jump_enable=1;
-                        jump_target=pc_in+imm_in;
+                        predictor_write_taken=1;
+                        if (branch_taken_in==0) begin
+                            jump_enable=1;
+                            jump_target=pc_in+imm_in;
+                        end
+                    end else begin
+                        predictor_write_taken=0;
+                        if (branch_taken_in==1) begin
+                            jump_enable=1;
+                            jump_target=pc_in+4;
+                        end
                     end
                 end
                 `instBGEU: begin
+                    predictor_write_enable=1;
+                    predictor_write_pc=pc_in;
+                    predictor_write_target=pc_in+imm_in;
                     if (rs1_in>=rs2_in) begin
-                        jump_enable=1;
-                        jump_target=pc_in+imm_in;
+                        predictor_write_taken=1;
+                        if (branch_taken_in==0) begin
+                            jump_enable=1;
+                            jump_target=pc_in+imm_in;
+                        end
+                    end else begin
+                        predictor_write_taken=0;
+                        if (branch_taken_in==1) begin
+                            jump_enable=1;
+                            jump_target=pc_in+4;
+                        end
                     end
                 end
                 `instLB,`instLH,`instLW,`instLBU,`instLHU: begin

@@ -9,26 +9,32 @@ module if_id (
     //if
     input wire[`AddressBus] pc_in,
     input wire[`InstBus] inst_in,
+    input wire branch_taken_in,
     //id
     output reg[`AddressBus] pc_out,
-    output reg[`InstBus] inst_out
+    output reg[`InstBus] inst_out,
+    output reg branch_taken_out
 );
     always @(posedge clk_in) begin
         if (rst_in==1) begin
             pc_out<=0;
             inst_out<=0;
+            branch_taken_out<=0;
         end else if (rdy_in==1) begin
             if (jump_enable==1) begin
                 pc_out<=0;
                 inst_out<=0;
+                branch_taken_out<=0;
             end else if (stall_in[2]==1) begin
                 ;
             end else if (stall_in[1]==0) begin
                 pc_out<=pc_in;
                 inst_out<=inst_in;
+                branch_taken_out<=branch_taken_in;
             end else begin
                 pc_out<=0;
                 inst_out<=0;
+                branch_taken_out<=0;
             end
         end
     end
