@@ -50,7 +50,7 @@ module interruptctrl (
                 end else if (cnt==10) begin
                     cnt<=cnt+1;
                     jump_enable<=1;
-                    jump_target<=csr_read2_data[31:2]+4*interrupt_cause;
+                    jump_target<=csr_read2_data[31:2]+4*cause;
                     csr_write2_enable<=1;
                     csr_write2_address<=`csrmepc;
                     csr_write2_data<=pc_in;

@@ -8,6 +8,8 @@ module riscv_top
 (
 	input wire 			EXCLK,
 	input wire			btnC,
+	input wire			btnL,
+	input wire			btnR,
 	output wire 		Tx,
 	input wire 			Rx,
 	output wire			led
@@ -116,8 +118,8 @@ cpu cpu0(
 	
 	.io_buffer_full(hci_io_full),
 
-	.interrupt_enable(0),
-    .interrupt_cause(0),
+	.interrupt_enable(btnL|btnR),
+    .interrupt_cause(btnL?3'b000:3'b001),
 
 	.dbgreg_dout(cpu_dbgreg_dout)
 );
